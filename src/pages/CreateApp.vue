@@ -3,8 +3,13 @@
     <div class="row no-wrap justify-around q-px-md q-pt-md">
       <div v-mutation="handler1" @dragenter="onDragEnter" @dragleave="onDragLeave" @dragover="onDragOver" @drop="onDrop" class="menu-target rounded-borders">
         <div id="box1" draggable="true" @dragstart="onDragStart" class="box navy" />
-        <q-btn id="box2" draggable="true" @dragstart="onDragStart" label="button" color="white" text-color="black" />
-        <div id="box3" draggable="true" @dragstart="onDragStart" class="box green" />
+        <div id="box2" draggable="true" @dragstart="onDragStart" class="box green" >
+          <q-btn label="button" color="white" text-color="black" />
+        </div>
+        <div id="box3" draggable="true" @dragstart="onDragStart" class="box red" >
+          <q-input  label="Input" outlined />
+        </div>
+
         <div id="box4" draggable="true" @dragstart="onDragStart" class="box orange" />
         <div id="box5" draggable="true" @dragstart="onDragStart" class="box navy" />
         <div id="box6" draggable="true" @dragstart="onDragStart" class="box red" />
@@ -30,6 +35,7 @@ import { ref } from "vue";
 export default {
   data() {
     return {
+      is_disable: false,
       status: {},
       last_id: 0,
     };
@@ -88,56 +94,67 @@ export default {
       e.preventDefault();
     },
 
-    createNewElement(node, className) {
-      const newEl = node.cloneNode(true);
-      newEl.setAttribute('class', className);
-      newEl.setAttribute('draggable', true);
-      newEl.setAttribute('id', `node_${this.last_id}`);
-      newEl.addEventListener('dragstart', event => {
-        this.onDragStart(event, false);
+    createNewElement(node) {
+      let node_name = node?.nodeName?.toLowerCase();
+      let new_node = document.createElement(node_name);
+      if(node_name == 'div'){
+        new_node.classList = ["box bordered created-node"];
+      }
+      else{
+        new_node.classList = node.classList;
+        console.log(node.classList)
+      }
+      // new_node.classList.add('bg-white');
+      // new_node.classList.add('resizable');
+
+      let htmlArray = Array.from(node.children).map(el => el.outerHTML);
+      let plainHtml = htmlArray.join('');
+
+      new_node.insertAdjacentHTML('afterbegin', plainHtml);
+
+      const attrs = node.getAttributeNames().reduce((acc, name) => { return {...acc, [name]: node.getAttribute(name)}; }, {}); // copy all attributes from parent
+      Object.keys(attrs).forEach(key => node.setAttribute(key, attrs[key]));  //set attributes to created element
+      // new_node.setAttribute("contenteditable", true); // add a few aditional attributes for editing content and dragging
+      new_node.setAttribute("draggable", true);
+      new_node.setAttribute("id", "node_" + this.last_id);
+      new_node.addEventListener("dragstart", ($event) => {
+        this.onDragStart($event, false);
       });
       this.last_id++;
-      return newEl;
+      return new_node;
     },
-
     onDrop(e) {
       e.preventDefault();
 
       if (this.status.menu_target) {
-        return; // don't drop on menu_target draggables
+        return; //don`t drop on menu_target draggables
       }
 
       // drop on other draggables
-      if (e.target.getAttribute('draggable') === 'true') {
-        e.target.classList.add('fit-content');
+      if (e.target.draggable === true) {
+        e.target.classList.add("fit-content");
       }
 
-      const draggedId = e.dataTransfer.getData('text');
+      const draggedId = e.dataTransfer.getData("text");
       const draggedEl = document.getElementById(draggedId);
 
       // check if original parent node
-      if (draggedEl.parentNode === e.target) {
-        e.target.classList.remove('drag-enter');
+      if (draggedEl?.parentNode === e.target) {
+        e.target.classList.remove("drag-enter");
         return;
       }
-
-      const targetElement = e.target.closest("[draggable='true']"); // Used to find the closest ancestor element with droppable functionality
-      if (!targetElement) {
-        console.log('Error. No target');
-        return;
-      }
-      if (e.dataTransfer.getData('create_new') == 'false') {
+      // draggedEl.parentNode.removeChild(draggedEl);
+      if (e.dataTransfer.getData("create_new") == "false") {
         // make the exchange from elements list to working section
         e.target.appendChild(draggedEl);
-        e.target.classList.remove('drag-enter');
+        e.target.classList.remove("drag-enter");
         return;
       } else {
         // create new element if we are in the working section
         let element = this.createNewElement(draggedEl);
         e.target.appendChild(element);
       }
-    }
-
+    },
   },
 };
 </script>
@@ -173,6 +190,10 @@ export default {
     cursor: pointer;
     transition: 1s all ease-in-out;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
   }
 
   @media only screen and (max-width: 500px) {
