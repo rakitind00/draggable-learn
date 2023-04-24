@@ -3,8 +3,8 @@
     <div class="row no-wrap justify-around q-px-md q-pt-md">
       <div v-mutation="handler1" @dragenter="onDragEnter" @dragleave="onDragLeave" @dragover="onDragOver" @drop="onDrop" class="menu-target rounded-borders">
         <div id="box1" draggable="true" @dragstart="onDragStart" class="box navy" />
-        <div id="box2" draggable="true" @dragstart="onDragStart" class="box green" >
-          <q-btn label="button" color="white" text-color="black" />
+        <div class="box green" >
+          <q-btn label="button" color="white" text-color="black" draggable="true" @dragstart="onDragStart"  id="box2"/>
         </div>
         <div id="box3" draggable="true" @dragstart="onDragStart" class="box red" >
           <q-input  label="Input" outlined />
@@ -17,7 +17,10 @@
         <div id="box8" draggable="true" @dragstart="onDragStart" class="box orange" />
       </div>
 
-      <div v-mutation="handler2" @dragenter="onDragEnter" @dragleave="onDragLeave" @dragover="onDragOver" @drop="onDrop" class="drop-target rounded-borders" />
+      <div v-mutation="handler2" @dragenter="onDragEnter" @dragleave="onDragLeave" @dragover="onDragOver" @drop="onDrop" class="drop-target rounded-borders" >
+      </div>
+      <context-menu @show="onShow" @hide="onHide" :context_target="context_target"></context-menu>
+
     </div>
 
     <div class="row justify-around items-start">
@@ -30,14 +33,17 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import ContextMenu from 'src/components/ContextMenu.vue';
 
 export default {
+  components: {ContextMenu},
   data() {
     return {
       is_disable: false,
       status: {},
       last_id: 0,
+
+      context_target: null,
     };
   },
   methods: {
@@ -100,9 +106,8 @@ export default {
       if(node_name == 'div'){
         new_node.classList = ["box bordered created-node"];
       }
-      else{
+      else if(!!node && !!new_node) {
         new_node.classList = node.classList;
-        console.log(node.classList)
       }
       // new_node.classList.add('bg-white');
       // new_node.classList.add('resizable');
@@ -117,9 +122,17 @@ export default {
       // new_node.setAttribute("contenteditable", true); // add a few aditional attributes for editing content and dragging
       new_node.setAttribute("draggable", true);
       new_node.setAttribute("id", "node_" + this.last_id);
+
+      if(new_node.getAttribute('id')){
+        new_node.addEventListener("contextmenu", ($event) => {
+          this.handleRightClick(new_node);
+        });
+      }
+
       new_node.addEventListener("dragstart", ($event) => {
         this.onDragStart($event, false);
       });
+
       this.last_id++;
       return new_node;
     },
@@ -155,6 +168,26 @@ export default {
         e.target.appendChild(element);
       }
     },
+    handleRightClick(node){
+      this.context_target = '#'+ node.getAttribute('id');
+      node.classList.add('bg-red', 'shadow-1')
+    },
+    onShow($event){
+      setTimeout(()=>{
+        console.log($event.srcElement);
+        if($event.srcElement){
+          this.context_target = $event.srcElement.getAttribute('id');
+        }
+        return;
+      })
+    },
+    onHide(){
+     let element = document.getElementById(this.context_target);
+     console.log(element);
+     if(element){
+      element.classList.remove('bg-red');
+     }
+    }
   },
 };
 </script>
